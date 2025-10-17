@@ -11,7 +11,7 @@
 #include <ArduinoJson.h>
 
 // == KONFIGURASI ==
-#define APP_VERSION "v3.2-Final" 
+#define APP_VERSION "v4.0-Success" 
 #define WIFI_SSID "MOT-CycleControl"
 #define WIFI_PASS "motspotweld"
 #define MS_PER_CYCLE 20
@@ -103,7 +103,22 @@ void checkEncoder() { long newEncoderValue = encoder.read(); if (newEncoderValue
 void checkEncoderButton() { if (millis() - lastButtonCheck < 200) return; if (digitalRead(ENCODER_SW_PIN) == LOW) { lastButtonCheck = millis(); while (digitalRead(ENCODER_SW_PIN) == LOW) delay(10); activeSetting++; if (activeSetting > 3) activeSetting = 0; switch (activeSetting) { case 0: encoder.write(currentLevel_1 * 4); break; case 1: encoder.write(currentLevel_Jeda * 4); break; case 2: encoder.write(currentLevel_2 * 4); break; case 3: encoder.write(weldMode * 4); break; } oldEncoderValue = encoder.read(); settingsChanged = true; } }
 void updateDisplay() { display.clearDisplay(); if (welding) { display.setTextSize(3); display.setCursor(25, 20); display.print(F("SPOT!")); display.display(); return; } display.setTextSize(1); display.setCursor(0, 0); display.print(F("Mode:")); display.setCursor(70, 0); display.print(weldMode == 0 ? F("SINGLE") : F("DOUBLE")); if (activeSetting == 3) display.drawRect(68, 0, 60, 10, SSD1306_WHITE); display.setCursor(0, 15); display.printf("P1  : %d s (%d ms)", (int)currentLevel_1, (int)currentLevel_1 * MS_PER_CYCLE); if (activeSetting == 0) display.drawRect(0, 14, 128, 10, SSD1306_WHITE); display.setCursor(0, 30); if (weldMode == 1) { display.printf("Jeda: %d s (%d ms)", (int)currentLevel_Jeda, (int)currentLevel_Jeda * MS_PER_CYCLE); if (activeSetting == 1) display.drawRect(0, 29, 128, 10, SSD1306_WHITE); } else display.print(F("Jeda: N/A")); display.setCursor(0, 45); if (weldMode == 1) { display.printf("P2  : %d s (%d ms)", (int)currentLevel_2, (int)currentLevel_2 * MS_PER_CYCLE); if (activeSetting == 2) display.drawRect(0, 44, 128, 10, SSD1306_WHITE); } else display.print(F("P2  : N/A")); display.setCursor(0, 56); display.print(F("Status: SIAP")); display.display(); }
 void setupWiFi() { Serial.println("Menyiapkan SoftAP..."); WiFi.softAP(WIFI_SSID, WIFI_PASS); Serial.print("AP SSID: "); Serial.println(WIFI_SSID); }
-void setupWebServer() { server.on("/", HTTP_GET, [](AsyncWebServerRequest *request) { request->send_P(200, "text/html", index_html); }); server.on("/api/state", HTTP_GET, handleGetState); server.on("/api/level", HTTP_POST, [](AsyncWebServerRequest * request){}, NULL, [](AsyncWebServerRequest * request, uint8_t *data, size_t len, size_t index, size_t total) { static char jsonBuffer[512]; if (index == 0) memset(jsonBuffer, 0, sizeof(jsonBuffer)); if (len > 0 && (index + len) < sizeof(jsonBuffer)) memcpy(jsonBuffer + index, data, len); if (index + len == total) handleSetLevel(request, jsonBuffer); } ); server.on("/api/spot", HTTP_POST, handleSpot); AsyncElegantOTA.begin(&server); server.begin(); Serial.println("Web Server & OTA dimulai."); }
+
+void setupWebServer() {
+    // == PERBAIKAN FINAL DI SINI ==
+    // Mengganti send_P yang usang dengan 'send' yang modern
+    server.on("/", HTTP_GET, [](AsyncWebServerRequest *request) {
+        request->send(200, "text/html", index_html);
+    });
+
+    server.on("/api/state", HTTP_GET, handleGetState);
+    server.on("/api/level", HTTP_POST, [](AsyncWebServerRequest * request){}, NULL, [](AsyncWebServerRequest * request, uint8_t *data, size_t len, size_t index, size_t total) { static char jsonBuffer[512]; if (index == 0) memset(jsonBuffer, 0, sizeof(jsonBuffer)); if (len > 0 && (index + len) < sizeof(jsonBuffer)) memcpy(jsonBuffer + index, data, len); if (index + len == total) handleSetLevel(request, jsonBuffer); } );
+    server.on("/api/spot", HTTP_POST, handleSpot);
+    AsyncElegantOTA.begin(&server);
+    server.begin();
+    Serial.println("Web Server & OTA dimulai.");
+}
+
 void handleGetState(AsyncWebServerRequest *request) { StaticJsonDocument<256> doc; doc["mode"] = (int)weldMode; doc["p1"] = (int)currentLevel_1; doc["jeda"] = (int)currentLevel_Jeda; doc["p2"] = (int)currentLevel_2; doc["welding"] = welding; doc["version"] = APP_VERSION; String output; serializeJson(doc, output); request->send(200, "application/json", output); }
 void handleSetLevel(AsyncWebServerRequest *request, const char* jsonString) { if (welding) { request->send(503, "text/plain", "Sedang mengelas..."); return; } StaticJsonDocument<256> doc; DeserializationError error = deserializeJson(doc, jsonString); if (error) { request->send(400, "text/plain", "Invalid JSON"); return; } JsonObject obj = doc.as<JsonObject>(); if (obj.containsKey("mode")) { weldMode = obj["mode"].as<int>(); if (weldMode < 0) weldMode = 0; if (weldMode > 1) weldMode = 1; } if (obj.containsKey("p1")) { currentLevel_1 = obj["p1"].as<int>(); if (currentLevel_1 < MIN_LEVEL) currentLevel_1 = MIN_LEVEL; if (currentLevel_1 > MAX_LEVEL) currentLevel_1 = MAX_LEVEL; } if (obj.containsKey("jeda")) { currentLevel_Jeda = obj["jeda"].as<int>(); if (currentLevel_Jeda < MIN_LEVEL) currentLevel_Jeda = MIN_LEVEL; if (currentLevel_Jeda > MAX_LEVEL) currentLevel_Jeda = MAX_LEVEL; } if (obj.containsKey("p2")) { currentLevel_2 = obj["p2"].as<int>(); if (currentLevel_2 < MIN_LEVEL) currentLevel_2 = MIN_LEVEL; if (currentLevel_2 > MAX_LEVEL) currentLevel_2 = MAX_LEVEL; } settingsChanged = true; switch (activeSetting) { case 0: encoder.write(currentLevel_1 * 4); break; case 1: encoder.write(currentLevel_Jeda * 4); break; case 2: encoder.write(currentLevel_2 * 4); break; case 3: encoder.write(weldMode * 4); break; } oldEncoderValue = encoder.read(); handleGetState(request); }
 void handleSpot(AsyncWebServerRequest *request) { if (welding) { request->send(503, "text/plain", "Operasi sedang berlangsung."); return; } doWeld(); request->send(200, "text/plain", "OK"); }
