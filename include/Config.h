@@ -6,7 +6,13 @@
 #include <Arduino.h>
 
 // == Versi Firmware ==
-#define APP_VERSION "v1.0-Fase1"
+// Penting untuk OTA
+#define APP_VERSION "v2.0-WebUI" 
+
+// == Pengaturan WiFi SoftAP ==
+// Jaringan WiFi yang akan dibuat oleh ESP32
+#define WIFI_SSID "MOT-CycleControl"
+#define WIFI_PASS "motspotweld"
 
 // == Pengaturan Inti ==
 #define MS_PER_CYCLE 20   // 50Hz -> 1 siklus = 20ms
