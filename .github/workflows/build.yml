@@ -1,45 +1,37 @@
-# .github/workflows/build.yml
+name: Build ESP32 Firmware
 
-name: Build MOT-CycleControl Firmware
-
-on:
-  push:
-    branches: [ "main", "master" ]
-  workflow_dispatch:
+# Memicu workflow ini setiap kali ada 'push' atau 'pull request'
+on: [push, pull_request]
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest # Menggunakan server Linux
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+    - name: Checkout repository
+      # Mengunduh kode Anda dari repo ke server
+      uses: actions/checkout@v4
 
-      - name: Set up Python 3.11
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
+    - name: Set up Python
+      # PlatformIO membutuhkan Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.9'
 
-      # Langkah untuk download library bermasalah secara manual
-      - name: Manually download and place libraries
-        run: |
-          mkdir -p lib
-          curl -L https://github.com/me-no-dev/ESPAsyncWebServer/archive/master.zip -o ESPAsyncWebServer.zip
-          unzip -d lib ESPAsyncWebServer.zip
-          curl -L https://github.com/me-no-dev/AsyncTCP/archive/master.zip -o AsyncTCP.zip
-          unzip -d lib AsyncTCP.zip
-          curl -L https://github.com/ayushsharma82/AsyncElegantOTA/archive/master.zip -o AsyncElegantOTA.zip
-          unzip -d lib AsyncElegantOTA.zip
-          echo "Manual libraries downloaded."
+    - name: Install PlatformIO Core
+      # Menginstal PlatformIO di server
+      run: pip install -U platformio
 
-      - name: Install PlatformIO
-        run: pip install platformio
+    - name: Run PlatformIO Build
+      # Menjalankan perintah build
+      run: pio run
 
-      - name: Build PlatformIO Project
-        run: pio run -e esp32dev
-
-      - name: Upload Firmware Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: firmware-bin
-          path: .pio/build/esp32dev/firmware.bin
+    - name: Upload Firmware Artifact
+      # Ini adalah bagian yang Anda inginkan:
+      # Mengambil file firmware.bin yang sudah jadi dan menyimpannya
+      # agar bisa Anda download.
+      uses: actions/upload-artifact@v4
+      with:
+        name: esp32-firmware
+        # Lokasi file .bin hasil build
+        path: .pio/build/esp32dev/firmware.bin
