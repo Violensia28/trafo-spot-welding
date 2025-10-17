@@ -1,0 +1,16 @@
+/* web-flasher/manifest.json */
+
+{
+      "name": "MOT-CycleControl",
+      "builds": [
+                {
+                              "chipFamily": "ESP32",
+                              "parts": [
+                                                { 
+                                                    "path": "https://github.com/[NAMA_ANDA]/[NAMA_REPO_ANDA]/releases/latest/download/firmware.bin", 
+                                                    "offset": 0
+                                                }
+  ]
+                }
+      ]
+}
