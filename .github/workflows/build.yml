@@ -20,6 +20,24 @@ jobs:
         with:
           python-version: '3.11'
 
+      # ==========================================================
+      # == LANGKAH BARU: DOWNLOAD LIBRARY BERMASALAH SECARA MANUAL ==
+      # ==========================================================
+      - name: Manually download and place libraries
+        run: |
+          # Buat folder lib jika belum ada
+          mkdir -p lib
+          # Unduh dan ekstrak ESPAsyncWebServer
+          curl -L https://github.com/me-no-dev/ESPAsyncWebServer/archive/master.zip -o ESPAsyncWebServer.zip
+          unzip -d lib ESPAsyncWebServer.zip
+          # Unduh dan ekstrak AsyncTCP
+          curl -L https://github.com/me-no-dev/AsyncTCP/archive/master.zip -o AsyncTCP.zip
+          unzip -d lib AsyncTCP.zip
+          # Unduh dan ekstrak AsyncElegantOTA
+          curl -L https://github.com/ayushsharma82/AsyncElegantOTA/archive/master.zip -o AsyncElegantOTA.zip
+          unzip -d lib AsyncElegantOTA.zip
+          echo "Manual libraries downloaded."
+
       - name: Install PlatformIO
         run: pip install platformio
 
