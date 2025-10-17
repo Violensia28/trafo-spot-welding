@@ -1,9 +1,7 @@
 // src/main.cpp - Versi Final Lengkap
-// Kode ini sudah mencakup semua fitur dan perbaikan error.
 
 #include <Arduino.h>
 #include <Wire.h>
-// TIDAK ADA Config.h, semua definisi ada di sini untuk simplisitas
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
 #include <Encoder.h>
@@ -13,7 +11,7 @@
 #include <ArduinoJson.h>
 
 // == KONFIGURASI ==
-#define APP_VERSION "v3.1-Actions" 
+#define APP_VERSION "v3.2-Final" 
 #define WIFI_SSID "MOT-CycleControl"
 #define WIFI_PASS "motspotweld"
 #define MS_PER_CYCLE 20
@@ -70,12 +68,10 @@ const char index_html[] PROGMEM = R"rawliteral(
 </html>
 )rawliteral";
 
-// == Inisialisasi Hardware ==
+// == Inisialisasi Hardware & Variabel Global ==
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 Encoder encoder(ENCODER_DT_PIN, ENCODER_CLK_PIN);
 AsyncWebServer server(80);
-
-// == Variabel Status Global ==
 volatile int currentLevel_1 = 3; volatile int currentLevel_Jeda = 3; volatile int currentLevel_2 = 5;
 volatile int weldMode = 0; volatile bool welding = false; volatile bool settingsChanged = true;
 int activeSetting = 0; long oldEncoderValue = -999; long lastButtonCheck = 0;
@@ -87,9 +83,6 @@ void handleGetState(AsyncWebServerRequest *request);
 void handleSetLevel(AsyncWebServerRequest *request, const char* jsonString);
 void handleSpot(AsyncWebServerRequest *request);
 
-// ===================================
-// == SETUP ==
-// ===================================
 void setup() {
     Serial.begin(115200); Serial.println(F("MOT-CycleControl Booting..."));
     pinMode(SSR_PIN, OUTPUT); digitalWrite(SSR_PIN, LOW); pinMode(TRIGGER_PIN, INPUT_PULLUP); pinMode(ENCODER_SW_PIN, INPUT_PULLUP);
@@ -97,17 +90,11 @@ void setup() {
     Serial.println(F("Setup selesai. Sistem Siap."));
 }
 
-// ===================================
-// == LOOP UTAMA ==
-// ===================================
 void loop() {
     if (welding) return; checkEncoder(); checkEncoderButton(); checkTriggerButton();
     if (settingsChanged) { updateDisplay(); settingsChanged = false; }
 }
 
-// ===================================
-// == FUNGSI-FUNGSI LOGIKA ==
-// ===================================
 void setupOLED() { if (!display.begin(SSD1306_SWITCHCAPVCC, I2C_ADDRESS)) { Serial.println(F("Gagal SSD1306")); while (true); } display.clearDisplay(); display.setTextSize(1); display.setTextColor(SSD1306_WHITE); display.setCursor(0, 0); display.print(F("MOT-CycleControl")); display.setCursor(0, 10); display.print(APP_VERSION); display.display(); delay(1500); }
 void setupEncoder() { encoder.write(currentLevel_1 * 4); oldEncoderValue = encoder.read(); Serial.println("Encoder OK."); }
 void doWeld() { if (welding) return; welding = true; settingsChanged = true; updateDisplay(); long p1_ms = (long)currentLevel_1 * MS_PER_CYCLE; long gap_ms = (long)currentLevel_Jeda * MS_PER_CYCLE; long p2_ms = (long)currentLevel_2 * MS_PER_CYCLE; if (weldMode == 0) { Serial.printf("SPOT! S, P1:%d(%ldms)\n", (int)currentLevel_1, p1_ms); digitalWrite(SSR_PIN, HIGH); delay(p1_ms); digitalWrite(SSR_PIN, LOW); } else { Serial.printf("SPOT! D, P1:%d(%ldms), J:%d(%ldms), P2:%d(%ldms)\n", (int)currentLevel_1, p1_ms, (int)currentLevel_Jeda, gap_ms, (int)currentLevel_2, p2_ms); digitalWrite(SSR_PIN, HIGH); delay(p1_ms); digitalWrite(SSR_PIN, LOW); delay(gap_ms); digitalWrite(SSR_PIN, HIGH); delay(p2_ms); digitalWrite(SSR_PIN, LOW); } Serial.println("Selesai."); welding = false; settingsChanged = true; }
