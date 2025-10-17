@@ -7,7 +7,7 @@
                               "chipFamily": "ESP32",
                               "parts": [
                                                 { 
-                                                    "path": "https://github.com/[NAMA_ANDA]/[NAMA_REPO_ANDA]/releases/latest/download/firmware.bin", 
+                                                    "path": "https://github.com/Violensia28/trafo-spot-welding/releases/latest/download/firmware.bin", 
                                                     "offset": 0
                                                 }
   ]
